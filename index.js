@@ -1,17 +1,10 @@
 
   const puppeteer = require('puppeteer');
   const  fs = require('fs');
-
-// let link = 'https://www.dns-shop.ru/catalog/17a9c6ec16404e77/shurupoverty/?p=';
-
-//
-
-
-(async () => {
+  (async () => {
   let flag = true
   let res = []
   let counter = 1
-
   try {
 
     let browser = await puppeteer.launch({
