@@ -1,12 +1,19 @@
 
-const puppeteer = require('puppeteer');
-const  fs = require('fs');
-let link = '';
+  const puppeteer = require('puppeteer');
+  const  fs = require('fs');
+
+// let link = 'https://www.dns-shop.ru/catalog/17a9c6ec16404e77/shurupoverty/?p=';
+
+//
+
+
 (async () => {
   let flag = true
   let res = []
   let counter = 1
+
   try {
+
     let browser = await puppeteer.launch({
       headless: false,
       slowMo: 100,
@@ -18,8 +25,8 @@ let link = '';
     })
 
     while (flag) {
-      await page.goto(`${link}`)
-      await page.waitForSelector('a.g-i-more-link')
+      await page.goto(`https://darwin.md/ru/gadgets/power-bank?page=${counter}`)
+      // await page.waitForSelector('a.ty-pagination__right-arrow')
       console.log(counter);
 
       let html = await page.evaluate(async () => {
@@ -27,26 +34,24 @@ let link = '';
 
         try {
 
-          let divs = await document.querySelectorAll('div.g-i-tile-i-box')
-          console.log(divs);
+          let divs = await document.querySelectorAll('figure.card.card-product.border-0 ')
+
           divs.forEach(div => {
-            let a = div.querySelector('div.g-i-tile-i-title > a')
+            let a = div.querySelector('h3.title > a')
 
             let obj = {
               title: a !== null
                 ? a.innerText
                 : 'NO-LINK',
-                link: a.href,
-
-              // code: div.querySelector('div.oneProd-kod') !== null
-              //     ? div.querySelector('div.oneProd-kod').innerText
+              // code: div.querySelector('span.ty-control-group__item') !== null
+              //     ? div.querySelector('span.ty-control-group__item').innerText
               //     :'NO-CODE', 
-              
-              price: div.querySelector('span.g-price-uah') !== null
-                ? div.querySelector('span.g-price-uah').innerText
+              link: a.href,
+              price: div.querySelector('span.price-new') !== null
+                ? div.querySelector('span.price-new').innerText
                 : 'NO-PRICE',
-              img:div.querySelector('a.responsive-img > img') !== null
-              ? div.querySelector('a.responsive-img > img').getAttribute('src')
+              img:div.querySelector('.card-image') !== null
+              ? div.querySelector('.card-image').getAttribute('data-img')
               :'NO-IMG'  
             }
 
@@ -58,25 +63,34 @@ let link = '';
         }
 
         return page
-      }, {waintUntil: 'a.g-i-more-link'})
-         
-      
+      }, {
+        // waintUntil: 'a.ty-pagination__right-arrow'
+      })
       await res.push(html)
       for(let i=0; i < html.length; i++){
         await page.goto(html[i].link, {waitUntil: 'domcontentloaded'});
-  
-        await page.waitForSelector('table.chars-t').catch(e => console.log(e));
-        await page.waitForSelector('div.text-description-content').catch(e => console.log(e));
-        await page.waitForSelector('span.detail-code-i').catch(e => console.log(e));
-        // await page.waitForSelector('.oneProd-photos-picture > img ').catch(e => console.log(e));
+        // await page.waitForSelector('.article-id > strong').catch(e => console.log(e));
+        await page.waitForSelector('ul.features.mt-1').catch(e => console.log(e));
+        await page.waitForSelector('table.table.table-striped').catch(e => console.log(e));
         console.log(i);
-  
+        // let id = await page.evaluate(async () => {
+                  
+        //   let id = null
+                  
+        //   try{
+        //     id = document.querySelector('.article-id > strong').innerText
+                      
+        //   }catch(e){
+        //     id = null;
+        //   }
+        //   return id;
+        // });
         let article = await page.evaluate(async () => {
                   
           let article = null
                   
           try{
-            article = document.querySelector('table.table.chars-t').innerText
+            article = document.querySelector('ul.features.mt-1').innerText
                       
           }catch(e){
             article = null;
@@ -86,33 +100,42 @@ let link = '';
         let description = await page.evaluate(async () => {
           let description = null;
           try{
-            description = document.querySelector('div.text-description-content').innerText
+            description = document.querySelector('table.table.table-striped').innerText
           }catch(e){
             description = null;
           } 
           return description;
         });
-        let code = await page.evaluate(async () => {
-          let code = null;
+        let keywords = await page.evaluate(async () => {
+                  
+          let keywords = null
+                  
           try{
-             code = document.querySelector('span.detail-code-i').innerText
+            keywords = document.querySelector('meta[name="keywords"]').getAttribute('content')
+                      
           }catch(e){
-             code = null;
+            keywords = null;
           }
-          return code;
+          return keywords;
         });
-        // let code = await page.evaluate(async () => {
-        //   let code = null;
-        //   try{
-        //      code = document.querySelector('.oneProd-photos-picture > img').getAttribute('data-path')
-        //   }catch(e){
-        //      code = null;
-        //   }
-        //   return code;
-        // });
+        let metaDescription = await page.evaluate(async () => {
+                  
+          let metaDescription = null
+                  
+          try{
+            metaDescription = document.querySelector('meta[name="description"]').getAttribute('content')
+                      
+          }catch(e){
+            metaDescription = null;
+          }
+          return metaDescription;
+        });
+        
+        // html[i]['id'] = id;
         html[i]['caracteristic'] = article;
-        html[i]['description'] = description;
-        html[i]['code'] = code;
+        html[i]['description'] = description; 
+        html[i]['keywords'] = keywords;
+        html[i]['metaDescription'] = metaDescription;
       }
       
 
@@ -120,20 +143,20 @@ let link = '';
       for (let i in res) {
         if (res[i].length === 0) flag = false
       }
+
       
-      
-      // if (counter === 0) flag = false
-      // counter++
+
+      counter++
     }
 
     await browser.close()
 
     res = res.flat()
 
-    fs.appendFile('source.json', JSON.stringify({res}), err => {
+    fs.appendFile('power-bank-ru.json', JSON.stringify({res}), err => {
       if (err) throw err
-      console.log('saved source.json');
-      console.log('source.json length - ', res.length);
+      console.log('saved power-bank-ru.json');
+      console.log('power-bank-ru.json length - ', res.length);
     })
 
 
